@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Xarita</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Yomg'ir Radari</h1>
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="search" placeholder="Shahar qidirish...">
+                <div id="search-results"></div>
+            </div>
+            <button id="btn-locate" title="Mening joylashuvim">📍 Manzilim</button>
+            <button id="btn-radar" class="active">Radar: Yoqilgan</button>
+            <button id="btn-play" disabled>▶ O'ynatish</button>
+            <input type="range" id="slider" min="0" max="0" value="0" disabled>
+            <span id="time-label">-</span>
+        </div>
+    </header>
+
+    <div id="map"></div>
+
+    <div id="weather-box" class="hidden"></div>
+
+    <footer>
+        <p>Xarita: <a href="https://www.openstreetmap.org" target="_blank">OpenStreetMap</a> (bepul) |
+        Radar: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> (bepul) |
+        Ob-havo: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> (bepul)</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
