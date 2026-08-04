@@ -1,5 +1,6 @@
 import asyncio
 import io
+import os
 
 import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -12,9 +13,22 @@ from telegram.ext import (
     filters,
 )
 
-import config
+try:
+    import config
+except ImportError:
+    config = None
 
 LIMIT = 5
+ENV_NAME = "BOT_TOKEN"
+
+
+def get_token() -> str:
+    token = os.environ.get(ENV_NAME)
+    if token:
+        return token
+    if config is not None:
+        return config.TOKEN
+    raise RuntimeError("BOT_TOKEN environment variable is not set")
 
 
 def search_deezer(query: str) -> list:
@@ -51,10 +65,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+def build_keyboard(query: str, results: list) -> InlineKeyboardMarkup:
+    keyboard = []
+    for i, r in enumerate(results[:LIMIT]):
+        info = track_info(r)
+        label = f"{info['artist']} \u2014 {info['name']}"
+        if info["album"]:
+            label += f" ({info['album']})"
+        keyboard.append(
+            [InlineKeyboardButton(label, callback_data=f"play:{i}:{query[:50]}")]
+        )
+    return InlineKeyboardMarkup(keyboard)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.message.text.strip()
     if len(query) < 2:
         return
+    if len(query) > 50:
+        query = query[:50]
     await update.message.chat.send_action("typing")
     results = await asyncio.to_thread(search_deezer, query)
     source = "Deezer"
@@ -64,24 +93,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not results:
         await update.message.reply_text("Hech narsa topilmadi. Boshqa nom bilan urinib ko'ring.")
         return
-    keyboard = []
-    for i, r in enumerate(results):
-        info = track_info(r)
-        label = f"{info['artist']} \u2014 {info['name']}"
-        if info["album"]:
-            label += f" ({info['album']})"
-        keyboard.append([InlineKeyboardButton(label, callback_data=f"play:{i}")])
-    context.user_data["results"] = results
     await update.message.reply_text(
-        f"Top natijalar ({source}):", reply_markup=InlineKeyboardMarkup(keyboard)
+        f"Top natijalar ({source}):", reply_markup=build_keyboard(query, results)
     )
 
 
 async def play(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    i = int(query.data.split(":")[1])
-    results = context.user_data.get("results", [])
+    parts = query.data.split(":", 2)
+    i = int(parts[1])
+    q = parts[2]
+    results = await asyncio.to_thread(search_deezer, q)
+    if not results:
+        results = await asyncio.to_thread(search_itunes, q)
     if not results or i >= len(results):
         await query.edit_message_text("Natija topilmadi, qayta qidiring.")
         return
@@ -104,7 +129,7 @@ async def play(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def main() -> None:
-    app = Application.builder().token(config.TOKEN).build()
+    app = Application.builder().token(get_token()).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(play, pattern="^play:"))

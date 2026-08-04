@@ -1,2 +1,4 @@
 python-telegram-bot>=22.0
 requests>=2.31
+fastapi>=0.110
+uvicorn
