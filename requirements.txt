@@ -1,4 +1,8 @@
-python-telegram-bot>=22.0
-requests>=2.31
-fastapi>=0.110
-uvicorn
+python-telegram-bot==21.5
+yt-dlp>=2024.12.13
+aiohttp>=3.10.11
+aiofiles>=24.1.0
+
+# Eslatma: MP3/MP4 konvertatsiya uchun ffmpeg ham kerak:
+#   Windows:  winget install ffmpeg  (yoki https://ffmpeg.org/download.html)
+#   Linux:    sudo apt install ffmpeg

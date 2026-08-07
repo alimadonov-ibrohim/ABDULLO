@@ -2,6 +2,15 @@ config.py
 .venv/
 __pycache__/
 *.pyc
-
-.vercel
 .env*
+
+downloads/
+bot.log
+bot_database.db
+
+*.mp3
+*.mp4
+*.webm
+*.part
+
+videoyukla.zip
