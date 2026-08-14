@@ -1,17 +1,40 @@
 import os
 import random
+import tempfile
 
 from PIL import Image, ImageDraw, ImageFont
 
 WIDTH, HEIGHT = 1080, 1080
 
-FONT_DIR = r"C:\Windows\Fonts"
-FONT_BOLD = os.path.join(FONT_DIR, "arialbd.ttf")
-FONT_REGULAR = os.path.join(FONT_DIR, "arial.ttf")
-FONT_EMOJI = os.path.join(FONT_DIR, "seguiemj.ttf")
+FONT_CANDIDATES = {
+    "bold": [
+        r"C:\Windows\Fonts\arialbd.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    ],
+    "regular": [
+        r"C:\Windows\Fonts\arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    ],
+    "emoji": [
+        r"C:\Windows\Fonts\seguiemj.ttf",
+    ],
+}
 
-TEMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_cards")
-os.makedirs(TEMP_DIR, exist_ok=True)
+
+def _resolve_font(kind):
+    for path in FONT_CANDIDATES.get(kind, []):
+        if os.path.exists(path):
+            return path
+    return None
+
+
+FONT_BOLD = _resolve_font("bold")
+FONT_REGULAR = _resolve_font("regular")
+FONT_EMOJI = _resolve_font("emoji")
+
+TEMP_DIR = tempfile.gettempdir()
 
 CATEGORY_STYLES = {
     "bolalar": {
@@ -48,12 +71,6 @@ def _font(path, size):
     return ImageFont.truetype(path, size)
 
 
-def _emoji_size(path, size):
-    font = ImageFont.truetype(path, size)
-    bbox = font.getbbox("\U0001F382")
-    return font, bbox[3] if bbox else size
-
-
 def _draw_balloon(draw, x, y, color, scale=1.0):
     r = int(28 * scale)
     draw.ellipse([x - r, y - int(34 * scale), x + r, y + int(34 * scale)], fill=color)
@@ -81,6 +98,8 @@ def _draw_cake(draw, cx, top, size=1.0):
 
 
 def _draw_star(draw, x, y, size=1.0):
+    if not FONT_EMOJI:
+        return
     r = int(22 * size)
     emoji_font = _font(FONT_EMOJI, int(44 * size))
     draw.text((x - r, y - r), "✨", font=emoji_font)
@@ -120,10 +139,10 @@ def make_card(category: str, name: str) -> str:
 
     _draw_cake(draw, WIDTH // 2, 210, size=1.15)
 
-    emoji_font, emoji_h = _emoji_size(FONT_EMOJI, 70)
-    small_emoji_font = _font(FONT_EMOJI, 52)
-    draw.text((90, 160), random.choice(DECORATION_EMOJIS), font=small_emoji_font)
-    draw.text((WIDTH - 170, 200), random.choice(DECORATION_EMOJIS), font=small_emoji_font)
+    if FONT_EMOJI:
+        small_emoji_font = _font(FONT_EMOJI, 52)
+        draw.text((90, 160), random.choice(DECORATION_EMOJIS), font=small_emoji_font)
+        draw.text((WIDTH - 170, 200), random.choice(DECORATION_EMOJIS), font=small_emoji_font)
 
     title_font = _font(FONT_BOLD, 84)
     sub_font = _font(FONT_REGULAR, 56)

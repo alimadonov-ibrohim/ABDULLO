@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import random
 
 from aiogram import Bot, Dispatcher, F
@@ -19,7 +20,7 @@ from cards import make_card
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "8812859354:AAGD8J4VTucwkhHMsQWczfU5WZqjz70o-Ik"
+BOT_TOKEN = os.getenv("BOT_TOKEN") or "8812859354:AAGD8J4VTucwkhHMsQWczfU5WZqjz70o-Ik"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
