@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valyuta hisoblagich</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #f4f6f8;
+    --text: #1a1f2e;
+    --muted: #6b7280;
+    --accent: #173f35;
+    --accent2: #4cea4c;
+    --border: #e5e7eb;
+    --green: #16a34a;
+    --red: #dc2626;
+  }
+  body.dark {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --text: #e7eaf0;
+    --muted: #8a93a6;
+    --accent: #2b6a5b;
+    --accent2: #4cea4c;
+    --border: #2a2e3a;
+    --green: #34d399;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; transition: background .3s, color .3s;
+    padding-bottom: 40px;
+  }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; position: sticky; top: 0;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .topbar h1 { font-size: 18px; }
+  .theme-btn {
+    background: var(--card); color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 14px; cursor: pointer; font-size: 14px;
+  }
+  .container { max-width: 480px; margin: 0 auto; padding: 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row .code { font-weight: 700; width: 90px; }
+  .row .name { flex: 1; color: var(--muted); font-size: 13px; }
+  .row .buy { width: 70px; text-align: right; color: var(--green); font-weight: 600; font-size: 13px; }
+  .row .sell { width: 70px; text-align: right; color: var(--red); font-weight: 600; font-size: 13px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 6px; }
+  input, select {
+    width: 100%; padding: 12px; font-size: 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .calc-row { display: flex; gap: 10px; }
+  .calc-row > div { flex: 1; }
+  .result {
+    margin-top: 16px; padding: 16px; border-radius: 12px;
+    background: var(--accent); color: #fff; text-align: center;
+    font-size: 22px; font-weight: 700; min-height: 56px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .result small { display: block; font-size: 12px; font-weight: 400; opacity: .8; margin-top: 4px; }
+  .rate-type { display: flex; gap: 8px; margin-top: 6px; }
+  .rate-type button {
+    flex: 1; padding: 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 13px;
+  }
+  .rate-type button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .updated { text-align: center; color: var(--muted); font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Valyuta hisoblagich</h1>
+    <button class="theme-btn" id="themeBtn">🌙 Qorong'u</button>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Hisoblash</h2>
+      <div class="calc-row">
+        <div>
+          <label>Summa</label>
+          <input type="number" id="amount" placeholder="100" min="0">
+        </div>
+        <div>
+          <label>Valyuta</label>
+          <select id="currency">
+            <option value="USD">USD — Dollar</option>
+            <option value="EUR">EUR — Yevro</option>
+            <option value="RUB">RUB — Rubl</option>
+            <option value="GBP">GBP — Funt</option>
+            <option value="CHF">CHF — Frank</option>
+            <option value="JPY">JPY — Iyena</option>
+          </select>
+        </div>
+      </div>
+      <label>Kurs turi</label>
+      <div class="rate-type" id="rateType">
+        <button data-tab="Kassada" class="active">Kassada</button>
+        <button data-tab="Bankomatda">Bankomatda</button>
+        <button data-tab="Ilovada">Ilovada</button>
+      </div>
+      <label>Yo'nalish</label>
+      <div class="rate-type" id="side">
+        <button data-side="buy" class="active">Bank sotib oladi (buy)</button>
+        <button data-side="sell">Bank sotadi (sell)</button>
+      </div>
+      <div class="result" id="result">Natija kuting...</div>
+    </div>
+
+    <div class="card">
+      <h2>Kurslar — Kassada</h2>
+      <div id="ratesTable"></div>
+      <div class="updated" id="updated"></div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let state = { tab: "Kassada", side: "buy", rates: null };
+
+  function format(n) {
+    if (n == null) return "-";
+    return Number(n).toLocaleString("ru-RU");
+  }
+
+  function setTheme(dark, save) {
+    document.body.classList.toggle("dark", dark);
+    $("themeBtn").textContent = dark ? "☀️ Oq" : "🌙 Qorong'u";
+    if (save) localStorage.setItem("theme", dark ? "dark" : "light");
+  }
+
+  $("themeBtn").onclick = () => setTheme(!document.body.classList.contains("dark"), true);
+
+  (function initTheme() {
+    if (window.Telegram?.WebApp) {
+      const tp = window.Telegram.WebApp.themeParams;
+      if (tp && tp.bg_color && tp.text_color) {
+        const dark = tp.bg_color.startsWith("#1") || tp.bg_color.startsWith("#0");
+        setTheme(dark, false);
+        Telegram.WebApp.ready();
+      }
+    }
+    if (localStorage.getItem("theme")) {
+      setTheme(localStorage.getItem("theme") === "dark", false);
+    }
+  })();
+
+  document.querySelectorAll("#rateType button").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll("#rateType button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      state.tab = b.dataset.tab;
+      renderRates();
+      calc();
+    };
+  });
+
+  document.querySelectorAll("#side button").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll("#side button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      state.side = b.dataset.side;
+      calc();
+    };
+  });
+
+  ["amount", "currency"].forEach(id => $(id).addEventListener("input", calc));
+
+  async function loadRates() {
+    const res = await fetch("/rates");
+    const data = await res.json();
+    state.rates = data;
+    renderRates();
+    calc();
+  }
+
+  function renderRates() {
+    if (!state.rates) return;
+    const tab = state.rates.tabs.find(t => t.name === state.tab) || state.rates.tabs[0];
+    $("ratesTable").innerHTML = tab.rates.map(r => `
+      <div class="row">
+        <div class="code">${r.code}</div>
+        <div class="name">${r.name}</div>
+        <div class="buy">${format(r.buy)}</div>
+        <div class="sell">${format(r.sell)}</div>
+      </div>`).join("");
+    const d = new Date(tab.lastUpdated * 1000);
+    $("updated").textContent = "Yangilangan: " + d.toLocaleString("uz-UZ");
+  }
+
+  function calc() {
+    const amount = parseFloat($("amount").value) || 0;
+    const code = $("currency").value;
+    if (!state.rates) return;
+    const tab = state.rates.tabs.find(t => t.name === state.tab) || state.rates.tabs[0];
+    const r = tab.rates.find(r => r.code === code);
+    if (!r) return;
+    const rate = r[state.side];
+    if (!rate) return;
+    const result = amount * rate / 100;
+    $("result").innerHTML =
+      format(result) + " so'm" +
+      `<small>${amount} ${code} × ${format(rate)} so'm / 100</small>`;
+  }
+
+  loadRates();
+</script>
+</body>
+</html>
