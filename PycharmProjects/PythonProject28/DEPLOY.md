@@ -10,11 +10,12 @@ Vercel mos emas!
 3. Service → **Settings**:
    - **Root Directory**: `PycharmProjects/PythonProject28`
    - **Start Command**: `python main.py`
-4. **Variables** bo'limiga 3 ta env var qo'shing:
+4. **Variables** bo'limiga 4 ta env var qo'shing:
    ```
    API_ID=207475
    API_HASH=...
    BOT_TOKEN=...
+   PYTHON_VERSION=3.11.9
    ```
 5. Deploy — bot doimiy ishlaydi.
 
@@ -26,8 +27,12 @@ Vercel mos emas!
    - **Root Directory**: `PycharmProjects/PythonProject28`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `python main.py`
-4. **Environment** bo'limida `API_ID`, `API_HASH`, `BOT_TOKEN` qo'shing
+4. **Environment** bo'limida `API_ID`, `API_HASH`, `BOT_TOKEN` va `PYTHON_VERSION=3.11.9` qo'shing
 5. **Create Worker**
+
+## Muhim
+
+- Python **3.11** bo'lishi shart (`PYTHON_VERSION=3.11.9`) — aiogram 2.x yangi Python'larda o'rnatilmaydi
 
 ## Eslatma
 

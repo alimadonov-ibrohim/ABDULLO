@@ -1,6 +1,7 @@
 import asyncio
 import os
 import shutil
+import sys
 import time
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
@@ -8,6 +9,10 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from telethon import TelegramClient, errors, functions, types as tg_types
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Kod @MamurZokirov tomonidan tuzib chiqilgan
 
@@ -580,6 +585,7 @@ async def kick_logic(message: types.Message):
 
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     loop.run_until_complete(init_clients())
     executor.start_polling(dp, skip_updates=True)
