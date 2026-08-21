@@ -4,3 +4,6 @@
 /PycharmProjects/*
 !/PycharmProjects/PythonProject17/
 !/PycharmProjects/PythonProject21/
+!/PycharmProjects/PythonProject28/
+/PycharmProjects/PythonProject28/*
+!/PycharmProjects/PythonProject28/main.py
