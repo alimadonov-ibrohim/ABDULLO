@@ -1,0 +1,15 @@
+aiogram>=3.13,<4.0
+aiohttp>=3.9.0
+aiosqlite>=0.20.0
+tradingview-ta>=3.3.0
+pandas>=2.0.0
+numpy>=1.26.0
+python-dotenv>=1.0.0
+
+# IXTIYORIY: TA-Lib tezroq va aniqroq sham naqshlari uchun.
+# Windows o'rnatish (oddiy pip ishlamaydi):
+#   1) https://github.com/cgohlke/talib-build/ saytidan .whl yuklab oling
+#   2) pip install TA_Lib-0.4.x-cp3xx-win_amd64.whl
+# Yoki conda: conda install -c conda-forge ta-lib
+# O'rnatilmasa, bot ichki pandas-fallback dan foydalanadi.
+# TA-Lib>=0.4.28
