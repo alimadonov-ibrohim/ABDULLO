@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Vercel serverless: faqat /tmp yoziladigan, DB va loglar u yerda saqlanadi
+IS_SERVERLESS = bool(os.getenv("VERCEL"))
+
 load_dotenv(BASE_DIR / ".env")
 
 BOT_TOKEN: str = os.getenv("BOT_TOKEN", "PASTE_YOUR_BOT_TOKEN_HERE")
@@ -19,12 +22,22 @@ ADMIN_IDS: list[int] = [
 
 CHANNEL_ID: str = os.getenv("CHANNEL_ID", "")
 
-DB_PATH: str = str(BASE_DIR / os.getenv("DB_NAME", "trading_bot.db"))
+_DB_NAME: str = os.getenv("DB_NAME", "trading_bot.db")
+if IS_SERVERLESS:
+    _tmp = Path(os.getenv("TMPDIR", "/tmp"))
+    DB_PATH: str = str(_tmp / _DB_NAME)
+    LOGS_DIR: Path = _tmp / "logs"
+else:
+    DB_PATH = str(BASE_DIR / _DB_NAME)
+    LOGS_DIR: Path = BASE_DIR / "logs"
 
-LOGS_DIR: Path = BASE_DIR / "logs"
 BOT_LOG_FILE: str = str(LOGS_DIR / "bot.log")
 ERROR_LOG_FILE: str = str(LOGS_DIR / "bot_err.log")
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+
+# --- Vercel webhook rejimi ---
+WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "").strip()
+CHECK_SECRET: str = os.getenv("CHECK_SECRET", "").strip()
 
 CRYPTO_PAIRS: list[dict] = [
     {"symbol": "BTCUSDT", "screener": "crypto", "exchange": "BINANCE", "title": "BTC/USDT"},

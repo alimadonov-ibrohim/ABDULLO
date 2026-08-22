@@ -5,6 +5,7 @@ tradingview-ta>=3.3.0
 pandas>=2.0.0
 numpy>=1.26.0
 python-dotenv>=1.0.0
+fastapi>=0.111.0
 
 # IXTIYORIY: TA-Lib tezroq va aniqroq sham naqshlari uchun.
 # Windows o'rnatish (oddiy pip ishlamaydi):
