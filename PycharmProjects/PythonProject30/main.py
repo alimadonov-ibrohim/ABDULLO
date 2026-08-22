@@ -26,42 +26,46 @@ def log(msg: str):
     print(f"[{now}] {msg}")
 
 
+def process_update(update: dict, notifier: TelegramNotifier):
+    """Bitta Telegram update'ni qayta ishlaydi (polling va webhook uchun umumiy)."""
+    # --- Oddiy matnli xabar (masalan /start yoki har qanday yozuv) ---
+    message = update.get("message")
+    if message:
+        chat_id = str(message["chat"]["id"])
+        text = message.get("text", "")
+
+        if text.strip() == "/start":
+            lang = get_user_language(chat_id, default=DEFAULT_LANGUAGE)
+            notifier.send_language_selector(chat_id, WELCOME_TEXT[lang])
+        else:
+            lang = get_user_language(chat_id, default=DEFAULT_LANGUAGE)
+            status_text = MARKET_CLOSED_TEXT[lang] if is_weekend() else MARKET_OPEN_TEXT[lang]
+            notifier.send_message(status_text, chat_id=chat_id)
+
+    # --- Til tanlash tugmasi bosilganda ---
+    callback = update.get("callback_query")
+    if callback:
+        chat_id = str(callback["message"]["chat"]["id"])
+        data = callback.get("data", "")  # masalan "lang_uz"
+
+        if data.startswith("lang_"):
+            lang = data.replace("lang_", "")
+            set_user_language(chat_id, lang)
+            notifier.answer_callback_query(callback["id"])
+
+            symbols_text = ", ".join(config.SYMBOLS)
+            confirm_text = LANGUAGE_SET_TEXT[lang].format(symbols=symbols_text)
+            notifier.send_message(confirm_text, chat_id=chat_id)
+            log(f"Foydalanuvchi {chat_id} tilni tanladi: {lang}")
+
+
 def handle_updates(notifier: TelegramNotifier, offset: int):
     """Foydalanuvchidan kelgan xabar/tugma bosishlarni qayta ishlaydi. Yangi offset qaytaradi."""
     updates = notifier.get_updates(offset=offset, timeout=1)
 
     for update in updates:
         offset = update["update_id"] + 1
-
-        # --- Oddiy matnli xabar (masalan /start yoki har qanday yozuv) ---
-        message = update.get("message")
-        if message:
-            chat_id = str(message["chat"]["id"])
-            text = message.get("text", "")
-
-            if text.strip() == "/start":
-                lang = get_user_language(chat_id, default=DEFAULT_LANGUAGE)
-                notifier.send_language_selector(chat_id, WELCOME_TEXT[lang])
-            else:
-                lang = get_user_language(chat_id, default=DEFAULT_LANGUAGE)
-                status_text = MARKET_CLOSED_TEXT[lang] if is_weekend() else MARKET_OPEN_TEXT[lang]
-                notifier.send_message(status_text, chat_id=chat_id)
-
-        # --- Til tanlash tugmasi bosilganda ---
-        callback = update.get("callback_query")
-        if callback:
-            chat_id = str(callback["message"]["chat"]["id"])
-            data = callback.get("data", "")  # masalan "lang_uz"
-
-            if data.startswith("lang_"):
-                lang = data.replace("lang_", "")
-                set_user_language(chat_id, lang)
-                notifier.answer_callback_query(callback["id"])
-
-                symbols_text = ", ".join(config.SYMBOLS)
-                confirm_text = LANGUAGE_SET_TEXT[lang].format(symbols=symbols_text)
-                notifier.send_message(confirm_text, chat_id=chat_id)
-                log(f"Foydalanuvchi {chat_id} tilni tanladi: {lang}")
+        process_update(update, notifier)
 
     return offset
 
@@ -86,6 +90,40 @@ def broadcast_weekend_notice(notifier: TelegramNotifier):
     for chat_id in chat_ids:
         lang = get_user_language(chat_id, default=DEFAULT_LANGUAGE)
         notifier.send_message(MARKET_CLOSED_TEXT[lang], chat_id=chat_id)
+
+
+def run_check_cycle(fetcher: DataFetcher, notifier: TelegramNotifier, last_signal_time: dict) -> list:
+    """Bitta kuzatuv tsikli: barcha juftliklar uchun signal tekshiradi.
+    Yuborilgan signallar ro'yxatini qaytaradi (serverless cron uchun ham ishlatiladi)."""
+    sent = []
+    if is_weekend():
+        log("Bugun dam olish kuni. Bozor yopiq.")
+        return sent
+
+    for symbol in config.SYMBOLS:
+        try:
+            df = fetcher.get_candles(symbol, interval=config.INTERVAL, outputsize=210)
+            df = add_all_indicators(df)
+            result = check_signal(df)
+
+            last_candle_time = str(df.iloc[-1]["datetime"])
+
+            if result["signal"] is not None:
+                if last_signal_time.get(symbol) != last_candle_time:
+                    broadcast_signal(notifier, symbol, result["signal"], result["details"])
+                    last_signal_time[symbol] = last_candle_time
+                    log(f"{symbol}: {result['signal']} signali yuborildi.")
+                    sent.append({"symbol": symbol, "signal": result["signal"]})
+                else:
+                    log(f"{symbol}: signal bor, lekin allaqachon yuborilgan.")
+            else:
+                log(f"{symbol}: signal yo'q. RSI={result['details'].get('rsi')}, "
+                    f"ADX={result['details'].get('adx')}")
+
+        except Exception as e:
+            log(f"{symbol}: XATOLIK - {e}")
+
+    return sent
 
 
 def main():
@@ -123,27 +161,7 @@ def main():
         else:
             weekend_notice_sent = False
 
-        for symbol in config.SYMBOLS:
-            try:
-                df = fetcher.get_candles(symbol, interval=config.INTERVAL, outputsize=210)
-                df = add_all_indicators(df)
-                result = check_signal(df)
-
-                last_candle_time = df.iloc[-1]["datetime"]
-
-                if result["signal"] is not None:
-                    if last_signal_time[symbol] != last_candle_time:
-                        broadcast_signal(notifier, symbol, result["signal"], result["details"])
-                        last_signal_time[symbol] = last_candle_time
-                        log(f"{symbol}: {result['signal']} signali yuborildi.")
-                    else:
-                        log(f"{symbol}: signal bor, lekin allaqachon yuborilgan.")
-                else:
-                    log(f"{symbol}: signal yo'q. RSI={result['details'].get('rsi')}, "
-                        f"ADX={result['details'].get('adx')}")
-
-            except Exception as e:
-                log(f"{symbol}: XATOLIK - {e}")
+        run_check_cycle(fetcher, notifier, last_signal_time)
 
         time.sleep(config.CHECK_INTERVAL_SECONDS)
 

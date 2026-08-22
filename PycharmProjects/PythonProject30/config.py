@@ -22,6 +22,8 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 TWELVE_DATA_API_KEY = os.getenv("TWELVE_DATA_API_KEY", "demo")
 
+CHECK_SECRET = os.getenv("CHECK_SECRET", "")
+
 SYMBOLS = ["EUR/USD"]
 INTERVAL = "15min"
 

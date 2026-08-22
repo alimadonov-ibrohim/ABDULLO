@@ -5,7 +5,12 @@ Oddiy JSON fayl orqali saqlanadi - bot qayta ishga tushsa ham eslab qoladi.
 import json
 import os
 
-USERS_FILE = os.path.join(os.path.dirname(__file__), "users.json")
+if os.environ.get("VERCEL"):
+    _BASE_DIR = "/tmp"
+else:
+    _BASE_DIR = os.path.dirname(__file__)
+
+USERS_FILE = os.path.join(_BASE_DIR, "users.json")
 
 
 def load_users() -> dict:
