@@ -44,6 +44,42 @@ def get_user_language(chat_id: str, default: str = "uz") -> str:
 
 
 def get_all_registered_chat_ids() -> list:
-    """Tilni tanlagan barcha foydalanuvchilarning chat_id ro'yxati (signal yuborish uchun)."""
+    """Tilni tanlagan barcha foydalanuvchilar chat_id ro'yxati (signal yuborish uchun)."""
     users = load_users()
     return list(users.keys())
+
+
+def get_all_users() -> dict:
+    """Barcha foydalanuvchilar ma'lumotlarini to'liq qaytaradi."""
+    return load_users()
+
+
+def get_user_symbols(chat_id: str, default: list) -> list:
+    """Foydalanuvchi tanlagan juftliklar. Tanlanmagan bo'lsa — standart ro'yxat."""
+    symbols = load_users().get(str(chat_id), {}).get("symbols")
+    if not symbols:
+        return list(default)
+    if isinstance(symbols, str):
+        return [symbols]
+    return list(symbols)
+
+
+def toggle_user_symbol(chat_id: str, symbol: str, default: list) -> bool:
+    """Juftlikni tanlanganlar ro'yxatiga qo'shadi/olib tashlaydi.
+    Qaytaradi: True = qo'shildi, False = olib tashlandi."""
+    users = load_users()
+    chat_id = str(chat_id)
+    info = users.setdefault(chat_id, {})
+    current = info.get("symbols")
+    current = list(current) if current else list(default)
+
+    if symbol in current:
+        current.remove(symbol)
+        added = False
+    else:
+        current.append(symbol)
+        added = True
+
+    info["symbols"] = current
+    save_users(users)
+    return added

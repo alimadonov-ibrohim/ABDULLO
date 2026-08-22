@@ -108,3 +108,27 @@ SIGNAL_LABELS = {
 }
 
 DEFAULT_LANGUAGE = "uz"
+
+PAIR_SELECTOR_TEXT = {
+    "uz": "💱 <b>Kuzatiladigan juftliklar</b>\nKeraklisini bosing — signal faqat tanlangan juftliklar boʻyicha keladi:",
+    "ru": "💱 <b>Отслеживаемые пары</b>\nНажмите на нужные — сигналы будут приходить только по выбранным парам:",
+    "en": "💱 <b>Watched pairs</b>\nTap the ones you need — signals will arrive only for selected pairs:",
+}
+
+PAIR_ADDED_TEXT = {
+    "uz": "✅ {symbol} kuzatuvga qoʻshildi",
+    "ru": "✅ {symbol} добавлено в отслеживание",
+    "en": "✅ {symbol} added to watchlist",
+}
+
+PAIR_REMOVED_TEXT = {
+    "uz": "❌ {symbol} kuzatuvdan olindi",
+    "ru": "❌ {symbol} убрано из отслеживания",
+    "en": "❌ {symbol} removed from watchlist",
+}
+
+PAIR_COMMAND_HINT_TEXT = {
+    "uz": "Juftliklarni oʻzgartirish uchun /pair buyrugʻini yuboring.",
+    "ru": "Чтобы изменить пары, отправьте команду /pair.",
+    "en": "Send /pair to change watched pairs.",
+}

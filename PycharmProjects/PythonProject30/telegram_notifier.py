@@ -51,6 +51,33 @@ class TelegramNotifier:
         except Exception as e:
             print(f"[answerCallbackQuery xatosi] {e}")
 
+    def build_pair_keyboard(self, available_symbols: list, selected: list) -> dict:
+        """Juftlik tanlash inline tugmalarini yig'adi."""
+        rows = []
+        for sym in available_symbols:
+            mark = "✅" if sym in selected else "▫️"
+            rows.append([{"text": f"{mark} {sym}", "callback_data": f"sym_{sym}"}])
+        return {"inline_keyboard": rows}
+
+    def send_pair_selector(self, chat_id: str, text: str, keyboard: dict):
+        self.send_message(text, chat_id=chat_id, reply_markup=keyboard)
+
+    def edit_pair_keyboard(self, chat_id: str, message_id: int, keyboard: dict):
+        """Tugma bosilgach, xabardagi belgilashlarni yangilaydi (yangi xabar yubormasdan)."""
+        import json as _json
+        try:
+            requests.post(
+                f"{self.api_url}/editMessageReplyMarkup",
+                data={
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "reply_markup": _json.dumps(keyboard),
+                },
+                timeout=10,
+            )
+        except Exception as e:
+            print(f"[editMessageReplyMarkup xatosi] {e}")
+
     def get_updates(self, offset: int = None, timeout: int = 5):
         """Foydalanuvchidan kelgan yangi xabarlar/tugma bosishlarni oladi (long polling)."""
         params = {"timeout": timeout}

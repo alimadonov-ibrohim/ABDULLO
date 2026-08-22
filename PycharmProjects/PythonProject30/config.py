@@ -24,6 +24,8 @@ TWELVE_DATA_API_KEY = os.getenv("TWELVE_DATA_API_KEY", "demo")
 
 CHECK_SECRET = os.getenv("CHECK_SECRET", "")
 
+AVAILABLE_SYMBOLS = [s.strip() for s in os.getenv("AVAILABLE_SYMBOLS", "EUR/USD,USD/JPY,BTC/USD").split(",") if s.strip()]
+
 SYMBOLS = ["EUR/USD"]
 INTERVAL = "15min"
 
