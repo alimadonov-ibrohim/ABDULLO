@@ -27,10 +27,10 @@ async def webhook(request: Request):
 
 
 @app.get("/check")
-async def check(key: str = Query(default="")):
+async def check(key: str = Query(default=""), force: bool = Query(default=False)):
     if config.CHECK_SECRET and key != config.CHECK_SECRET:
         raise HTTPException(status_code=403, detail="Noto'g'ri kalit")
     fetcher = DataFetcher(config.TWELVE_DATA_API_KEY)
     notifier = TelegramNotifier(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHAT_ID)
-    sent = run_check_cycle(fetcher, notifier, _last_signal_time)
+    sent = run_check_cycle(fetcher, notifier, _last_signal_time, ignore_weekend=force)
     return {"ok": True, "sent": sent}

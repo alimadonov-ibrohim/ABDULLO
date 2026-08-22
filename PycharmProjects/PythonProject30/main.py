@@ -92,11 +92,12 @@ def broadcast_weekend_notice(notifier: TelegramNotifier):
         notifier.send_message(MARKET_CLOSED_TEXT[lang], chat_id=chat_id)
 
 
-def run_check_cycle(fetcher: DataFetcher, notifier: TelegramNotifier, last_signal_time: dict) -> list:
+def run_check_cycle(fetcher: DataFetcher, notifier: TelegramNotifier, last_signal_time: dict,
+                    ignore_weekend: bool = False) -> list:
     """Bitta kuzatuv tsikli: barcha juftliklar uchun signal tekshiradi.
     Yuborilgan signallar ro'yxatini qaytaradi (serverless cron uchun ham ishlatiladi)."""
     sent = []
-    if is_weekend():
+    if is_weekend() and not ignore_weekend:
         log("Bugun dam olish kuni. Bozor yopiq.")
         return sent
 
