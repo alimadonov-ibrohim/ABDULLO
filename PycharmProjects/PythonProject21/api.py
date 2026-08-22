@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
 import ipakyuli_api
@@ -42,6 +42,18 @@ def convert(
 @app.get("/webapp", response_class=FileResponse)
 def webapp():
     return WEBAPP_FILE
+
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    import bot
+
+    payload = await request.json()
+    try:
+        await bot.handle_update(payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"ok": True}
 
 
 if __name__ == "__main__":

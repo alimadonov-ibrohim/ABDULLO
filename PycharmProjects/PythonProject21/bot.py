@@ -189,11 +189,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text("Noma'lum buyruq.")
 
 
-def main():
-    if not TOKEN:
-        logger.error("BOT_TOKEN environment o'zgaruvchisi o'rnatilmagan!")
-        return
-
+def build_app():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
@@ -202,6 +198,32 @@ def main():
     app.add_handler(CommandHandler("theme", cmd_theme))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
+    return app
+
+
+_app = None
+
+
+async def get_app():
+    global _app
+    if _app is None:
+        _app = build_app()
+        await _app.initialize()
+    return _app
+
+
+async def handle_update(payload: dict):
+    app = await get_app()
+    update = Update.de_json(payload, app.bot)
+    await app.process_update(update)
+
+
+def main():
+    if not TOKEN:
+        logger.error("BOT_TOKEN environment o'zgaruvchisi o'rnatilmagan!")
+        return
+
+    app = build_app()
     logger.info("Bot ishga tushdi...")
     app.run_polling()
 

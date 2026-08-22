@@ -585,7 +585,14 @@ async def kick_logic(message: types.Message):
 
 
 if __name__ == '__main__':
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(init_clients())
-    executor.start_polling(dp, skip_updates=True)
+    while True:
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(init_clients())
+            executor.start_polling(dp, skip_updates=True)
+            break
+        except Exception as e:
+            print(f"⚠️ Xato: {e}")
+            print("🔄 Internet uzilgan bo'lishi mumkin. 10 soniyadan keyin qayta uriniladi...")
+            time.sleep(10)
