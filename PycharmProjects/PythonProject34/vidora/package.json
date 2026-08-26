@@ -1,0 +1,30 @@
+{
+  "name": "vidora",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VIDORA - Video Sharing Platform",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @vidora/api dev\" \"pnpm --filter @vidora/web dev\" \"pnpm --filter @vidora/worker dev\"",
+    "dev:web": "pnpm --filter @vidora/web dev",
+    "dev:api": "pnpm --filter @vidora/api dev",
+    "dev:worker": "pnpm --filter @vidora/worker dev",
+    "build": "pnpm --filter @vidora/api build && pnpm --filter @vidora/web build && pnpm --filter @vidora/worker build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @vidora/database generate",
+    "db:migrate": "pnpm --filter @vidora/database migrate",
+    "db:seed": "pnpm --filter @vidora/database seed",
+    "db:push": "pnpm --filter @vidora/database push",
+    "db:studio": "pnpm --filter @vidora/database studio"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "packageManager": "pnpm@9.1.0"
+}
