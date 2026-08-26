@@ -33,8 +33,11 @@ async def _send_safe(bot: Bot, chat_id: int, text: str) -> bool:
 
 async def run_scan_cycle(bot: Bot) -> int:
     async with _scan_lock:
+        from utils.i18n import get_lang, t
+
         sent = 0
         vip_ids = await db.active_vip_user_ids()
+        trial_ids = await db.active_trial_ids()
         channel_id = config.CHANNEL_ID
 
         for symbol in config.ALL_SYMBOLS:
@@ -94,6 +97,23 @@ async def run_scan_cycle(bot: Bot) -> int:
                     sent += 1
                 await asyncio.sleep(0.05)
 
+            # sinov (trial) foydalanuvchilari — kuniga TRIAL_DAILY_SIGNALS ta
+            for uid in trial_ids:
+                try:
+                    if await db.try_consume_trial_slot(uid):
+                        if await _send_safe(bot, uid, alert):
+                            sent += 1
+                            log.info("TRIAL signal delivered to %s", uid)
+                    elif await db.should_notify_trial_limit(uid):
+                        lang = await get_lang(uid)
+                        await _send_safe(
+                            bot, uid, t(lang, "trial_limit_reached",
+                                        n=config.TRIAL_DAILY_SIGNALS)
+                        )
+                        log.info("Trial limit notice sent to %s", uid)
+                except Exception:
+                    log.exception("trial delivery failed for %s", uid)
+
         return sent
 
 
@@ -122,6 +142,17 @@ async def scanner_loop(bot: Bot) -> None:
                 raise
             except Exception:
                 log.exception("Scan cycle crashed; continuing")
+
+            try:
+                from signal_tracker import track_open_signals
+
+                tracked = await track_open_signals()
+                if tracked:
+                    log.info("Signal tracker updated %s signals", tracked)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("Signal tracker failed; continuing")
         elapsed = (datetime.now() - started).total_seconds()
         sleep_for = max(30, interval_sec - elapsed)
         await asyncio.sleep(sleep_for)

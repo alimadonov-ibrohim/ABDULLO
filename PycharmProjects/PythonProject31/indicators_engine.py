@@ -1,5 +1,6 @@
 import asyncio
 import math
+import time
 from dataclasses import dataclass, field
 
 import aiohttp
@@ -50,6 +51,7 @@ class AnalysisResult:
     atr: float | None = None
     last_price: float | None = None
     ohlc: pd.DataFrame | None = None
+    tv_ok: int = 0  # ma'lumot olgan timeframe'lar soni
 
 
 def _pick(indicators: dict, *keys):
@@ -108,6 +110,11 @@ FALLBACK_SCREENERS: dict[str, list[str]] = {
     "cfd": ["forex"],
 }
 
+# TV javoblari keshi: {key: (expires_at, snapshot)} — rate-limit'ga qarshi
+_TV_CACHE: dict[tuple, tuple[float, TimeframeSnapshot]] = {}
+_TV_CACHE_TTL = 480  # 8 daqiqa — ratinglar tez o'zgarmaydi
+_TV_RETRY_DELAYS = (2.0, 5.0, 10.0)
+
 
 async def fetch_timeframe(
     symbol: str,
@@ -116,23 +123,35 @@ async def fetch_timeframe(
     interval: str,
     semaphore: asyncio.Semaphore,
 ) -> TimeframeSnapshot:
+    cache_key = (symbol, screener, exchange, interval)
+    now = time.monotonic()
+    cached = _TV_CACHE.get(cache_key)
+    if cached and cached[0] > now:
+        return cached[1]
+
     async with semaphore:
         screeners = [screener] + [
             s for s in FALLBACK_SCREENERS.get(screener, []) if s != screener
         ]
-        for attempt, scr in enumerate(screeners):
-            try:
-                analysis = await asyncio.to_thread(
-                    _fetch_tv_sync, symbol, scr, exchange, interval
-                )
-                snap = _parse_snapshot(interval, analysis)
-                if snap.close is not None:
-                    return snap
-            except Exception as exc:
-                # HTTP 429 (rate limit) — kichik pauza bilan qayta urinish
-                if "429" in str(exc):
-                    await asyncio.sleep(3 * (attempt + 1))
-                    continue
+        # Har bir screener uchun 429 bo'lsa ortga surib qayta urinish
+        for scr in screeners:
+            for delay in _TV_RETRY_DELAYS:
+                try:
+                    analysis = await asyncio.to_thread(
+                        _fetch_tv_sync, symbol, scr, exchange, interval
+                    )
+                    snap = _parse_snapshot(interval, analysis)
+                    if snap.close is not None:
+                        _TV_CACHE[cache_key] = (
+                            time.monotonic() + _TV_CACHE_TTL,
+                            snap,
+                        )
+                        return snap
+                    break  # javob bor lekin bo'sh — boshqa screenerga o'tish
+                except Exception as exc:
+                    if "429" not in str(exc):
+                        break  # boshqa xato — boshqa screenerga o'tish
+                    await asyncio.sleep(delay)
         return TimeframeSnapshot(timeframe=interval)
 
 
@@ -215,6 +234,7 @@ async def fetch_binance_ohlc(symbol: str, interval: str, limit: int = 150):
         try:
             rows.append(
                 {
+                    "ts": pd.to_datetime(int(item[0]), unit="ms", utc=True),
                     "open": float(item[1]),
                     "high": float(item[2]),
                     "low": float(item[3]),
@@ -262,6 +282,7 @@ async def fetch_twelvedata_ohlc(symbol: str, interval: str, limit: int = 150):
         try:
             rows.append(
                 {
+                    "ts": pd.to_datetime(item.get("datetime"), utc=True),
                     "open": float(item["open"]),
                     "high": float(item["high"]),
                     "low": float(item["low"]),
@@ -336,8 +357,21 @@ def compute_support_resistance(df: pd.DataFrame, tolerance: float = 0.004):
     return cluster(swing_lows), cluster(swing_highs)
 
 
+# Qisqa muddatli kesh: bir juftlikni qayta-qayta so'rash TradingView'ni
+# yana so'ramaydi (serverless warm instansiyada tez javob uchun).
+_ANALYSIS_CACHE: dict[str, tuple[float, "AnalysisResult"]] = {}
+_ANALYSIS_TTL_SEC = 60
+_ANALYSIS_CACHE_MAX = 32
+
+
 async def analyze_symbol(symbol: str, meta: dict | None = None, with_ohlc: bool = True) -> AnalysisResult:
     meta = meta or config.guess_pair_meta(symbol)
+    cache_key = f"{meta['symbol']}:{'ohlc' if with_ohlc else 'no'}"
+    now = time.monotonic()
+    hit = _ANALYSIS_CACHE.get(cache_key)
+    if hit is not None and now - hit[0] < _ANALYSIS_TTL_SEC:
+        return hit[1]
+
     symbol_u = meta["symbol"]
     result = AnalysisResult(
         symbol=symbol_u,
@@ -351,10 +385,21 @@ async def analyze_symbol(symbol: str, meta: dict | None = None, with_ohlc: bool 
         fetch_timeframe(symbol_u, result.screener, result.exchange, tf, semaphore)
         for tf in config.TIMEFRAMES
     ]
-    snaps = await asyncio.gather(*tasks)
+    ohlc_task = None
+    if with_ohlc:
+        if result.screener == "crypto":
+            ohlc_task = fetch_binance_ohlc(symbol_u, "4h")
+        else:
+            ohlc_task = fetch_twelvedata_ohlc(symbol_u, "4h")
+
+    gathered = await asyncio.gather(*tasks, ohlc_task) if ohlc_task else await asyncio.gather(*tasks)
+    snaps = gathered[: len(tasks)]
+    ohlc = gathered[len(tasks)] if ohlc_task else None
+
     for snap in snaps:
         score_snapshot(snap)
         result.snapshots[snap.timeframe] = snap
+    result.tv_ok = sum(1 for s in snaps if s.close is not None)
 
     primary = result.snapshots.get("4h") or result.snapshots.get("1h") or snaps[0]
     result.last_price = primary.close
@@ -372,22 +417,17 @@ async def analyze_symbol(symbol: str, meta: dict | None = None, with_ohlc: bool 
     elif result.combined_score <= -25:
         result.direction = "SHORT"
 
-    if with_ohlc:
-        if result.screener == "crypto":
-            ohlc = await fetch_binance_ohlc(symbol_u, "4h")
-        else:
-            ohlc = await fetch_twelvedata_ohlc(symbol_u, "4h")
-        if ohlc is not None:
-            result.ohlc = ohlc
-            result.atr = compute_atr(ohlc)
-            bb_up, bb_low = compute_bollinger(ohlc)
-            if bb_up and bb_low:
-                primary.bb_upper = bb_up
-                primary.bb_lower = bb_low
-            supports, resistances = compute_support_resistance(ohlc)
-            price = result.last_price or ohlc["close"].iloc[-1]
-            result.supports = sorted([s for s in supports if s < price], reverse=True)[:3]
-            result.resistances = sorted([r for r in resistances if r > price])[:3]
+    if ohlc is not None:
+        result.ohlc = ohlc
+        result.atr = compute_atr(ohlc)
+        bb_up, bb_low = compute_bollinger(ohlc)
+        if bb_up and bb_low:
+            primary.bb_upper = bb_up
+            primary.bb_lower = bb_low
+        supports, resistances = compute_support_resistance(ohlc)
+        price = result.last_price or ohlc["close"].iloc[-1]
+        result.supports = sorted([s for s in supports if s < price], reverse=True)[:3]
+        result.resistances = sorted([r for r in resistances if r > price])[:3]
 
     if not result.supports and primary.ema200:
         result.supports = [primary.ema200]
@@ -403,6 +443,11 @@ async def analyze_symbol(symbol: str, meta: dict | None = None, with_ohlc: bool 
     base_conf = 38 + min(abs(result.combined_score), 90) * 0.42
     adx_bonus = min((primary.adx or 0) / 2.5, 8.0)
     result.confidence = int(max(35, min(93, base_conf + agree * 4 + adx_bonus)))
+
+    if len(_ANALYSIS_CACHE) >= _ANALYSIS_CACHE_MAX:
+        oldest_key = min(_ANALYSIS_CACHE, key=lambda k: _ANALYSIS_CACHE[k][0])
+        _ANALYSIS_CACHE.pop(oldest_key, None)
+    _ANALYSIS_CACHE[cache_key] = (time.monotonic(), result)
     return result
 
 

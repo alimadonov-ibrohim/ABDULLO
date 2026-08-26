@@ -40,7 +40,6 @@ WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "").strip()
 CHECK_SECRET: str = os.getenv("CHECK_SECRET", "").strip()
 
 CRYPTO_PAIRS: list[dict] = [
-    {"symbol": "BTCUSDT", "screener": "crypto", "exchange": "BINANCE", "title": "BTC/USDT"},
     {"symbol": "ETHUSDT", "screener": "crypto", "exchange": "BINANCE", "title": "ETH/USDT"},
     {"symbol": "SOLUSDT", "screener": "crypto", "exchange": "BINANCE", "title": "SOL/USDT"},
     {"symbol": "XRPUSDT", "screener": "crypto", "exchange": "BINANCE", "title": "XRP/USDT"},
@@ -73,6 +72,10 @@ TF_WEIGHTS: dict[str, float] = {
 }
 
 SCAN_INTERVAL_MINUTES: int = int(os.getenv("SCAN_INTERVAL_MINUTES", "60"))
+
+# ---------- sinov (trial) rejimi ----------
+TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "7"))
+TRIAL_DAILY_SIGNALS: int = int(os.getenv("TRIAL_DAILY_SIGNALS", "2"))
 AUTO_SIGNAL_MIN_CONFIDENCE: int = int(os.getenv("AUTO_SIGNAL_MIN_CONFIDENCE", "75"))
 SIGNAL_COOLDOWN_HOURS: int = int(os.getenv("SIGNAL_COOLDOWN_HOURS", "8"))
 
@@ -85,22 +88,30 @@ VIP_PLANS: dict[str, dict] = {
     "month": {
         "label": "1 oylik VIP",
         "days": 30,
-        "price_usd": 25,
+        "price_usd": 10,
+        "price_stars": 500,
         "description": "kuniga 3-5 signal",
     },
     "quarter": {
         "label": "3 oylik VIP",
         "days": 90,
-        "price_usd": 60,
-        "description": "20% tejamkor",
+        "price_usd": 30,
+        "price_stars": 1500,
+        "description": "25% tejamkor",
     },
     "year": {
         "label": "1 yillik VIP",
         "days": 365,
-        "price_usd": 180,
-        "description": "eng ommabop, 40% tejamkor",
+        "price_usd": 90,
+        "price_stars": 4500,
+        "description": "eng ommabop, 50% tejamkor",
     },
 }
+
+# ---------- to'lovlar ----------
+PAYMENT_CONTACT: str = os.getenv("PAYMENT_CONTACT", "@ibrohimo_fx")
+PAYMENT_CARD: str = os.getenv("PAYMENT_CARD", "")
+PAYMENT_CRYPTO: str = os.getenv("PAYMENT_CRYPTO", "")
 
 TWELVE_DATA_API_KEY: str = os.getenv("TWELVEDATA_API_KEY", "")
 BINANCE_API_BASE: str = os.getenv("BINANCE_API_BASE", "https://api.binance.com")

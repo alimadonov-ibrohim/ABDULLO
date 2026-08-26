@@ -19,27 +19,36 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "🌐 <b>Choose a language:</b>",
     },
     "welcome": {
-        "uz": (
-            "👋 <b>Assalomu alaykum, {name}!</b>\n\n"
-            "🤖 Men — <b>Professional Forex & Crypto Analytics Bot</b>man.\n"
-            "TradingView ma'lumotlari asosida <b>Multi-Timeframe</b> tahlil "
-            "qilaman va savdo signallarini generatsiya qilaman."
-        ),
-        "ru": (
-            "👋 <b>Здравствуйте, {name}!</b>\n\n"
-            "🤖 Я — <b>Professional Forex & Crypto Analytics Bot</b>.\n"
-            "Делаю <b>мультитаймфрейм</b>-анализ на данных TradingView и "
-            "генерирую торговые сигналы."
-        ),
-        "en": (
-            "👋 <b>Hello, {name}!</b>\n\n"
-            "🤖 I am a <b>Professional Forex & Crypto Analytics Bot</b>.\n"
-            "I run <b>multi-timeframe</b> analysis on TradingView data and "
-            "generate trading signals."
-        ),
+        "uz": "👋 Salom, <b>{name}</b>!\n\n🤖 Men Forex va kripto bozorlarini 24/7 kuzatib boraman.",
+        "ru": "👋 Привет, <b>{name}</b>!\n\n🤖 Я круглосуточно слежу за рынками Forex и крипты.",
+        "en": "👋 Hi, <b>{name}</b>!\n\n🤖 I monitor Forex and crypto markets 24/7.",
     },
-    "btn_analysis": {"uz": "📊 Tahlil", "ru": "📊 Анализ", "en": "📊 Analysis"},
+    "welcome_stats": {
+        "uz": "📊 <b>{pairs}</b> juftlik · ⏱ M15–D1 · 8+ indikator\n⚡️ Bugunga qadar <b>{n}</b> ta signal generatsiya qildim",
+        "ru": "📊 <b>{pairs}</b> пар · ⏱ M15–D1 · 8+ индикаторов\n⚡️ На данный момент выдано <b>{n}</b> сигналов",
+        "en": "📊 <b>{pairs}</b> pairs · ⏱ M15–D1 · 8+ indicators\n⚡️ Generated <b>{n}</b> signals so far",
+    },
+    "welcome_vip_line": {
+        "uz": "💎 VIP a'zolik: <b>faol</b> ({until} gacha)",
+        "ru": "💎 VIP-статус: <b>активен</b> (до {until})",
+        "en": "💎 VIP membership: <b>active</b> (until {until})",
+    },
+    "welcome_cta": {
+        "uz": "👇 Boshlash uchun <b>«📊 Tahlil»</b> tugmasini bosing yoki juftlik nomini yozing",
+        "ru": "👇 Нажмите <b>«📊 Анализ»</b> или напишите название пары",
+        "en": "👇 Press <b>“📊 Analyze”</b> or just type a pair name",
+    },
+    "btn_analysis": {
+        "uz": "📊 Tahlil qilish",
+        "ru": "📊 Анализировать",
+        "en": "📊 Analyze",
+    },
     "btn_vip": {"uz": "💎 VIP", "ru": "💎 VIP", "en": "💎 VIP"},
+    "btn_vip_priced": {
+        "uz": "💎 VIP · ${price}/oydan",
+        "ru": "💎 VIP · от ${price}/мес",
+        "en": "💎 VIP · from ${price}/mo",
+    },
     "btn_history": {"uz": "📜 Tarix", "ru": "📜 История", "en": "📜 History"},
     "btn_stats": {"uz": "📈 Statistika", "ru": "📈 Статистика", "en": "📈 Statistics"},
     "btn_help": {"uz": "ℹ️ Yordam", "ru": "ℹ️ Помощь", "en": "ℹ️ Help"},
@@ -88,8 +97,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "/menu — asosiy menyu\n"
             "/vip — VIP obuna haqida\n"
             "/stats — statistika\n"
-            "/creator — yaratuvchi haqida\n"
-            "/clear — chatni tozalash\n\n"
+            "/clear — chatni tozalash (kamdan-kam kerak)\n"
+            "/creator — yaratuvchi haqida\n\n"
             "<b>Tahlil qanday ishlaydi?</b>\n"
             "1️⃣ Juftlikni tanlaysiz (yoki o'zingiz yozasiz)\n"
             "2️⃣ Bot M15/H1/H4/D1 da 8+ indikatorni hisoblaydi\n"
@@ -107,8 +116,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "/menu — главное меню\n"
             "/vip — о VIP подписке\n"
             "/stats — статистика\n"
-            "/creator — о создателе\n"
-            "/clear — очистить чат\n\n"
+            "/clear — очистить чат (редко нужно)\n"
+            "/creator — о создателе\n\n"
             "<b>Как работает анализ?</b>\n"
             "1️⃣ Выбираете пару (или вводите сами)\n"
             "2️⃣ Бот считает 8+ индикаторов на M15/H1/H4/D1\n"
@@ -126,8 +135,8 @@ TEXTS: dict[str, dict[str, str]] = {
             "/menu — main menu\n"
             "/vip — about VIP subscription\n"
             "/stats — statistics\n"
-            "/creator — about the creator\n"
-            "/clear — clear the chat\n\n"
+            "/clear — clear the chat (rarely needed)\n"
+            "/creator — about the creator\n\n"
             "<b>How does the analysis work?</b>\n"
             "1️⃣ Pick a pair (or type your own)\n"
             "2️⃣ The bot calculates 8+ indicators on M15/H1/H4/D1\n"
@@ -147,6 +156,7 @@ TEXTS: dict[str, dict[str, str]] = {
             "• 📊 RSI, MACD, Stochastic, Bollinger, EMA 50/200, Ichimoku, ADX\n"
             "• ⏱ M15 / H1 / H4 / D1 ko'p timeframe tahlili (og'irlikli ball)\n"
             "• 🕯 Sham naqshlari va narx figuralari\n"
+            "• 🧭 Market struktura (BOS/CHoCH) va likvidlik zonalari\n"
             "• 🎯 Entry, TP1-TP3, SL va Risk/Reward\n\n"
             f"👨‍💻 Yaratuvchi: <b>{CREATOR_NAME}</b>"
         ),
@@ -156,6 +166,7 @@ TEXTS: dict[str, dict[str, str]] = {
             "• 📊 RSI, MACD, Stochastic, Bollinger, EMA 50/200, Ichimoku, ADX\n"
             "• ⏱ Анализ M15 / H1 / H4 / D1 (взвешенный балл)\n"
             "• 🕯 Свечные паттерны и фигуры цены\n"
+            "• 🧭 Структура рынка (BOS/CHoCH) и зоны ликвидности\n"
             "• 🎯 Вход, TP1-TP3, SL и Risk/Reward\n\n"
             f"👨‍💻 Создатель: <b>{CREATOR_NAME}</b>"
         ),
@@ -165,14 +176,15 @@ TEXTS: dict[str, dict[str, str]] = {
             "• 📊 RSI, MACD, Stochastic, Bollinger, EMA 50/200, Ichimoku, ADX\n"
             "• ⏱ M15 / H1 / H4 / D1 multi-timeframe analysis (weighted score)\n"
             "• 🕯 Candlestick patterns & chart figures\n"
+            "• 🧭 Market structure (BOS/CHoCH) and liquidity zones\n"
             "• 🎯 Entry, TP1-TP3, SL and Risk/Reward\n\n"
             f"👨‍💻 Creator: <b>{CREATOR_NAME}</b>"
         ),
     },
     "clear_done": {
-        "uz": "🧹 Suhbat tozalandi (<b>{n}</b> xabar o'chirildi).\n\n👇 Quyidagi menyudan tanlang:",
-        "ru": "🧹 Чат очищен (удалено сообщений: <b>{n}</b>).\n\n👇 Выберите раздел меню:",
-        "en": "🧹 Chat cleared ({n} messages deleted).\n\n👇 Choose a section from the menu:",
+        "uz": "🧹 Chat tozalandi.",
+        "ru": "🧹 Чат очищен.",
+        "en": "🧹 Chat cleared.",
     },
     # ---------- statistika ----------
     "stats_title": {
@@ -214,6 +226,210 @@ TEXTS: dict[str, dict[str, str]] = {
         "uz": "\n🎯 O'rtacha ishonch darajasi: <b>{pct}%</b>",
         "ru": "\n🎯 Средняя уверенность: <b>{pct}%</b>",
         "en": "\n🎯 Average confidence: <b>{pct}%</b>",
+    },
+    # ---------- sinov (trial) rejimi ----------
+    "tv_unavailable": {
+        "uz": (
+            "⏳ <b>Ma'lumot vaqtincha olinmadi</b>\n\n"
+            "Bozor ma'lumotlari manbasi hozir javob bermayapti "
+            "(bandlik yoki texnik tanaffus).\n"
+            "💡 Bir-ikki daqiqadan keyin qayta urinib ko'ring."
+        ),
+        "ru": (
+            "⏳ <b>Данные временно недоступны</b>\n\n"
+            "Источник рыночных данных сейчас не отвечает "
+            "(нагрузка или технический перерыв).\n"
+            "💡 Попробуйте снова через минуту-две."
+        ),
+        "en": (
+            "⏳ <b>Data temporarily unavailable</b>\n\n"
+            "The market data source is not responding right now "
+            "(high load or maintenance).\n"
+            "💡 Please try again in a minute or two."
+        ),
+    },
+    "welcome_trial_line": {
+        "uz": "🎁 <b>Sinov rejimi faol!</b> Kuniga {n} ta bepul signal · {left} kun qoldi",
+        "ru": "🎁 <b>Пробный режим активен!</b> {n} бесплатных сигналов в день · осталось {left} дн.",
+        "en": "🎁 <b>Trial active!</b> {n} free signals per day · {left} days left",
+    },
+    "trial_limit_reached": {
+        "uz": (
+            "⛔️ <b>Bugungi bepul limit tugadi!</b>\n\n"
+            "Sinov rejimida kuniga {n} ta signal beriladi.\n"
+            "💎 Cheksiz signallar va barcha imkoniyatlar uchun VIP oling: /vip"
+        ),
+        "ru": (
+            "⛔️ <b>Дневной бесплатный лимит исчерпан!</b>\n\n"
+            "В пробном режиме — {n} сигнала в день.\n"
+            "💎 Безлимитные сигналы — с VIP: /vip"
+        ),
+        "en": (
+            "⛔️ <b>Daily free limit reached!</b>\n\n"
+            "Trial mode gives {n} signals per day.\n"
+            "💎 Get unlimited signals with VIP: /vip"
+        ),
+    },
+    # ---------- to'lov / premium ----------
+    "pay_choose_method": {
+        "uz": "💳 <b>To'lov usulini tanlang:</b>",
+        "ru": "💳 <b>Выберите способ оплаты:</b>",
+        "en": "💳 <b>Choose a payment method:</b>",
+    },
+    "pay_stars_btn": {
+        "uz": "⭐️ Telegram Stars (avtomatik)",
+        "ru": "⭐️ Telegram Stars (автоматически)",
+        "en": "⭐️ Telegram Stars (instant)",
+    },
+    "pay_manual_btn": {
+        "uz": "👨‍💼 Admin orqali (karta/kripto)",
+        "ru": "👨‍💼 Через админа (карта/крипто)",
+        "en": "👨‍💼 Via admin (card/crypto)",
+    },
+    "pay_invoice_desc": {
+        "uz": "TradePulseAI VIP — {desc}",
+        "ru": "TradePulseAI VIP — {desc}",
+        "en": "TradePulseAI VIP — {desc}",
+    },
+    "pay_manual_title": {
+        "uz": (
+            "👨‍💼 <b>Admin orqali to'lash — {label} (${price})</b>\n\n"
+            "1. Quyidagi karta yoki hamyonga to'lov qiling\n"
+            "2. Chek/rasmni adminga yuboring\n"
+            "3. Admin tasdiqlagach VIP avtomatik faollashadi"
+        ),
+        "ru": (
+            "👨‍💼 <b>Оплата через админа — {label} (${price})</b>\n\n"
+            "1. Оплатите на карту или кошелёк ниже\n"
+            "2. Отправьте чек админу\n"
+            "3. После подтверждения VIP активируется"
+        ),
+        "en": (
+            "👨‍💼 <b>Pay via admin — {label} (${price})</b>\n\n"
+            "1. Send payment to the card/wallet below\n"
+            "2. Send the receipt to the admin\n"
+            "3. VIP activates after approval"
+        ),
+    },
+    "pay_manual_contact": {
+        "uz": "👨‍💼 Admin: {contact}",
+        "ru": "👨‍💼 Админ: {contact}",
+        "en": "👨‍💼 Admin: {contact}",
+    },
+    "pay_i_paid_btn": {
+        "uz": "✅ To'lov qildim",
+        "ru": "✅ Я оплатил",
+        "en": "✅ I have paid",
+    },
+    "pay_send_receipt": {
+        "uz": (
+            "🧾 Buyurtmangiz qabul qilindi!\n\n"
+            "<b>Endi chek/rasmni shu chatga yuboring</b> — "
+            "admin tez orada tekshirib, VIP'ni faollashtiradi.\n"
+            "💡 Shoshilinch bo'lsa, admin bilan bog'laning."
+        ),
+        "ru": (
+            "🧾 Заказ принят!\n\n"
+            "<b>Теперь отправьте чек/скриншот в этот чат</b> — "
+            "админ скоро проверит и активирует VIP.\n"
+            "💡 Срочно? Свяжитесь с админом."
+        ),
+        "en": (
+            "🧾 Order received!\n\n"
+            "<b>Now send your receipt/screenshot to this chat</b> — "
+            "the admin will review and activate your VIP shortly.\n"
+            "💡 In a hurry? Contact the admin."
+        ),
+    },
+    "pay_receipt_thanks": {
+        "uz": (
+            "✅ Chekingiz adminga yuborildi!\n"
+            "Tasdiqlangach VIP avtomatik faollashadi."
+        ),
+        "ru": (
+            "✅ Чек отправлен админу!\n"
+            "После подтверждения VIP активируется автоматически."
+        ),
+        "en": (
+            "✅ Your receipt was sent to the admin!\n"
+            "VIP activates automatically after approval."
+        ),
+    },
+    "pay_already_pending": {
+        "uz": "⏳ Bu reja bo'yicha buyurtmangiz allaqachon kutilmoqda.",
+        "ru": "⏳ Заказ по этому плану уже на рассмотрении.",
+        "en": "⏳ An order for this plan is already pending.",
+    },
+    "pay_thanks_stars": {
+        "uz": "🎉 To'lov uchun rahmat! VIP obuna faollashtirildi.",
+        "ru": "🎉 Спасибо за оплату! VIP-подписка активирована.",
+        "en": "🎉 Thanks for your payment! VIP subscription activated.",
+    },
+    "pay_failed": {
+        "uz": "❌ To'lovni boshlab bo'lmadi. Keyinroq urinib ko'ring.",
+        "ru": "❌ Не удалось начать оплату. Попробуйте позже.",
+        "en": "❌ Failed to start payment. Please try again later.",
+    },
+    "pay_rejected": {
+        "uz": (
+            "❌ Sizning to'lov buyurtmangiz bekor qilindi.\n"
+            "Savollar uchun admin bilan bog'laning."
+        ),
+        "ru": (
+            "❌ Ваш заказ отклонён.\n"
+            "По вопросам свяжитесь с админом."
+        ),
+        "en": (
+            "❌ Your payment order was rejected.\n"
+            "Contact the admin if you have questions."
+        ),
+    },
+    "vip_activated": {
+        "uz": (
+            "💎 Tabriklaymiz! <b>{label}</b> faollashtirildi!\n"
+            "📅 Amal qilish muddati: <b>{until}</b> UTC\n"
+            "⚡️ Endi avto-signallarni birinchi bo'lib olasiz!"
+        ),
+        "ru": (
+            "💎 Поздравляем! <b>{label}</b> активирован!\n"
+            "📅 Действует до: <b>{until}</b> UTC\n"
+            "⚡️ Теперь вы первым получаете авто-сигналы!"
+        ),
+        "en": (
+            "💎 Congrats! <b>{label}</b> activated!\n"
+            "📅 Valid until: <b>{until}</b> UTC\n"
+            "⚡️ You now receive auto signals first!"
+        ),
+    },
+    # ---------- signal kuzatuvi / winrate ----------
+    "stats_winrate_title": {
+        "uz": "📊 <b>Real natijalar (avto-signallar):</b>",
+        "ru": "📊 <b>Реальные результаты (авто-сигналы):</b>",
+        "en": "📊 <b>Real results (auto signals):</b>",
+    },
+    "stats_winrate_line": {
+        "uz": (
+            "✅ Winrate: <b>{pct}%</b> — {won} g'alaba · {lost} zarar\n"
+            "📈 G'alabalarda o'rtacha TP darajasi: {avg_tp}"
+        ),
+        "ru": (
+            "✅ Винрейт: <b>{pct}%</b> — {won} побед · {lost} убытков\n"
+            "📈 Средний уровень TP в победах: {avg_tp}"
+        ),
+        "en": (
+            "✅ Winrate: <b>{pct}%</b> — {won} wins · {lost} losses\n"
+            "📈 Average TP level in wins: {avg_tp}"
+        ),
+    },
+    "stats_winrate_none": {
+        "uz": "<i>Kuzatuv yangi boshlandi — yopilgan signal hali yo'q.</i>",
+        "ru": "<i>Отслеживание только началось — закрытых сигналов пока нет.</i>",
+        "en": "<i>Tracking just started — no closed signals yet.</i>",
+    },
+    "stats_running": {
+        "uz": "⏳ Kuzatilmoqda: {n} ta signal (TP1/TP2 urilgan)",
+        "ru": "⏳ Отслеживаются: {n} сигн. (TP1/TP2 достигнуты)",
+        "en": "⏳ In tracking: {n} signals (TP1/TP2 hit)",
     },
     # ---------- bozor vaqti ----------
     "market_closed": {
@@ -582,6 +798,45 @@ TEXTS: dict[str, dict[str, str]] = {
     },
     "bull_state": {"uz": "Bullish ✅", "ru": "Бычий ✅", "en": "Bullish ✅"},
     "bear_state": {"uz": "Bearish ❌", "ru": "Медвежий ❌", "en": "Bearish ❌"},
+    # ---------- price action ----------
+    "pa_section": {
+        "uz": "🧭 <b>Price Action tahlili:</b>",
+        "ru": "🧭 <b>Price Action анализ:</b>",
+        "en": "🧭 <b>Price action analysis:</b>",
+    },
+    "verdict_strong_buy": {
+        "uz": "KUCHLI XARID",
+        "ru": "СИЛЬНАЯ ПОКУПКА",
+        "en": "STRONG BUY",
+    },
+    "verdict_buy": {"uz": "XARID", "ru": "ПОКУПКА", "en": "BUY"},
+    "verdict_neutral": {"uz": "NEYTRAL", "ru": "НЕЙТРАЛЬНО", "en": "NEUTRAL"},
+    "verdict_sell": {"uz": "SAVDO", "ru": "ПРОДАЖА", "en": "SELL"},
+    "verdict_strong_sell": {
+        "uz": "KUCHLI SAVDO",
+        "ru": "СИЛЬНАЯ ПРОДАЖА",
+        "en": "STRONG SELL",
+    },
+    "pa_structure": {
+        "uz": "Bozor strukturası",
+        "ru": "Структура рынка",
+        "en": "Market structure",
+    },
+    "pa_liquidity": {
+        "uz": "💧 Likvidlik: ↑ {above} · ↓ {below}",
+        "ru": "💧 Ликвидность: ↑ {above} · ↓ {below}",
+        "en": "💧 Liquidity: ↑ {above} · ↓ {below}",
+    },
+    "pa_sweep_bull": {
+        "uz": "Pastki likvidlik surildi — stop-hunt tugadi (bullish)",
+        "ru": "Нижняя ликвидность снята — стоп-хант завершён (бычье)",
+        "en": "Sell-side liquidity swept — stop hunt done (bullish)",
+    },
+    "pa_sweep_bear": {
+        "uz": "Yuqori likvidlik surildi — stop-hunt tugadi (bearish)",
+        "ru": "Верхняя ликвидность снята — стоп-хант завершён (медвежье)",
+        "en": "Buy-side liquidity swept — stop hunt done (bearish)",
+    },
 }
 
 # naqsh nomlari (asl nomi -> tarjima; 'en' asl nomini oladi)

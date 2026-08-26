@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+from datetime import datetime, timezone
 
 import config
 from aiogram import Bot, F, Router
@@ -13,6 +14,7 @@ from utils.keyboards import (
     admin_back_kb,
     admin_panel_kb,
     banned_list_kb,
+    user_detail_kb,
     users_list_kb,
 )
 
@@ -37,10 +39,18 @@ async def _panel_text() -> str:
     total = await db.count_users()
     vip = len(await db.active_vip_user_ids())
     banned = await db.count_banned()
+    try:
+        trial = await db.count_trials()
+    except Exception:
+        log.exception("count_trials failed")
+        trial = 0
+    pending = await db.count_pending_payments()
     return (
         "🛠 <b>Admin panel</b>\n\n"
         f"👥 Jami foydalanuvchilar: <b>{total}</b>\n"
         f"💎 VIP: <b>{vip}</b>\n"
+        f"🎁 Sinov (trial): <b>{trial}</b>\n"
+        f"🧾 Kutilayotgan to'lov: <b>{pending}</b>\n"
         f"🚫 Bloklangan: <b>{banned}</b>\n\n"
         "Kerakli bo'limni tanlang:"
     )
@@ -170,6 +180,236 @@ async def cb_unban(cb: CallbackQuery):
         await _notify_target(cb.bot, target_id, "unban")
     await cb.answer(f"{'✅ Ochildi' if ok else '⚠️ Topilmadi'}: {target_id}", show_alert=True)
     await _render_users_list(cb)
+
+
+# ---------------- to'lovlar ----------------
+
+def _payment_line(p: dict) -> str:
+    uname = f"@{p['username']}" if p.get("username") else "-"
+    return (
+        f"🧾 <b>Buyurtma #{p['id']}</b>\n"
+        f"👤 {esc(p['full_name'] or '-')} · {uname}\n"
+        f"🆔 <code>{p['user_id']}</code>\n"
+        f"💎 Plan: <b>{esc(p['plan'])}</b> — ${p['amount_usd']} · "
+        f"{'⭐️ Stars' if p['method'] == 'stars' else '👨‍💼 Qo\'lda'}\n"
+        f"🕒 {p['created_at'][:16].replace('T', ' ')} UTC"
+    )
+
+
+async def _approve_payment(cb: CallbackQuery, pid: int) -> None:
+    p = await db.get_payment(pid)
+    if not p or p["status"] != "pending":
+        await cb.answer("⚠️ Buyurtma topilmadi yoki allaqachon yopilgan.", show_alert=True)
+        return
+    plan = config.VIP_PLANS.get(p["plan"])
+    days = plan["days"] if plan else 30
+    await db.set_payment_status(pid, "approved", resolved_by=cb.from_user.id)
+    from handlers.vip import activate_vip_and_notify
+
+    until = await activate_vip_and_notify(cb.bot, p["user_id"], p["plan"], "manual")
+    await cb.message.edit_text(
+        f"✅ #{pid} tasdiqlandi!\n💎 VIP: <code>{p['user_id']}</code>\n"
+        f"📅 Muddat: {until[:16].replace('T', ' ')} UTC"
+    )
+    log.info("Payment #%s approved by %s", pid, cb.from_user.id)
+    await cb.answer("✅ VIP faollashtirildi")
+
+
+@router.callback_query(F.data.startswith("adm:vipok:"))
+async def cb_vip_approve(cb: CallbackQuery):
+    await _approve_payment(cb, int(cb.data.rsplit(":", 1)[-1]))
+
+
+@router.callback_query(F.data.startswith("adm:vipno:"))
+async def cb_vip_reject(cb: CallbackQuery):
+    pid = int(cb.data.rsplit(":", 1)[-1])
+    ok = await db.set_payment_status(pid, "rejected", resolved_by=cb.from_user.id)
+    if not ok:
+        await cb.answer("⚠️ Buyurtma topilmadi.", show_alert=True)
+        return
+    p = await db.get_payment(pid)
+    try:
+        lang = await get_lang(p["user_id"]) if p else "uz"
+        if p:
+            await cb.bot.send_message(p["user_id"], t(lang, "pay_rejected"))
+    except Exception:
+        log.warning("reject notify failed for %s", p and p["user_id"])
+    await cb.message.edit_text(f"❌ #{pid} bekor qilindi.")
+    await cb.answer("❌ Bekor qilindi")
+
+
+@router.callback_query(F.data == "adm:pays")
+async def cb_payments(cb: CallbackQuery):
+    from utils.keyboards import pending_payments_kb
+
+    pays = await db.pending_payments(limit=15)
+    if not pays:
+        await cb.message.edit_text(
+            "✅ Kutilayotgan to'lov yo'q.",
+            reply_markup=admin_back_kb().as_markup(),
+        )
+        await cb.answer()
+        return
+    lines = [f"🧾 <b>Kutilayotgan to'lovlar ({len(pays)}):</b>\n"]
+    for p in pays:
+        name = (p.get("full_name") or p.get("username") or "-")[:20]
+        lines.append(
+            f"#{p['id']} · {esc(str(name))} · ${p['amount_usd']} · "
+            f"<code>{p['user_id']}</code>"
+        )
+    lines.append("\nTafsilot va tasdiqlash uchun bosing 👇")
+    await cb.message.edit_text(
+        "\n".join(lines), reply_markup=pending_payments_kb(pays).as_markup()
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("adm:vipinfo:"))
+async def cb_vip_info(cb: CallbackQuery):
+    pid = int(cb.data.rsplit(":", 1)[-1])
+    p = await db.get_payment(pid)
+    if not p:
+        await cb.answer("⚠️ Topilmadi.", show_alert=True)
+        return
+    from utils.keyboards import admin_payment_kb
+
+    status_icon = {"pending": "⏳", "approved": "✅", "rejected": "❌", "paid": "⭐️"}.get(
+        p["status"], "•"
+    )
+    text = _payment_line(p) + f"\n\nHolat: {status_icon} <b>{p['status']}</b>"
+    markup = (
+        admin_payment_kb(pid).as_markup()
+        if p["status"] == "pending"
+        else admin_back_kb().as_markup()
+    )
+    await cb.message.edit_text(text, reply_markup=markup)
+    await cb.answer()
+
+
+@router.message(Command("payments"))
+async def cmd_payments(message: Message):
+    from utils.keyboards import pending_payments_kb
+
+    pays = await db.pending_payments(limit=15)
+    if not pays:
+        await message.answer("✅ Kutilayotgan to'lov yo'q.")
+        return
+    lines = [f"🧾 <b>Kutilayotgan to'lovlar ({len(pays)}):</b>\n"]
+    for p in pays:
+        lines.append(f"{_payment_line(p)}\n")
+    await message.answer(
+        "\n".join(lines),
+        reply_markup=pending_payments_kb(pays).as_markup(),
+    )
+
+
+@router.callback_query(F.data.startswith("adm:userinfo:"))
+async def cb_userinfo(cb: CallbackQuery):
+    uid = int(cb.data.rsplit(":", 1)[-1])
+    u = await db.get_user(uid)
+    if not u:
+        await cb.answer("⚠️ Foydalanuvchi topilmadi.", show_alert=True)
+        return
+    vip_until = await db.get_vip_until(uid)
+    trial = await db.trial_status(uid)
+
+    uname = f"@{u['username']}" if u.get("username") else "-"
+    status = "🚫 bloklangan" if u["is_banned"] else "✅ faol"
+    if uid in config.ADMIN_IDS or (vip_until and vip_until > datetime.now(timezone.utc)):
+        vip_line = f"💎 VIP: <b>{vip_until.strftime('%d.%m.%Y') if vip_until else '∞'}</b>"
+    elif trial and trial["active"]:
+        vip_line = f"🎁 Sinov: <b>{trial['days_left']} kun qoldi</b>"
+    else:
+        vip_line = "💎 VIP: yo'q"
+
+    text = (
+        f"👤 <b>Foydalanuvchi</b>\n\n"
+        f"🆔 <code>{uid}</code>\n"
+        f"👤 {esc(u.get('full_name') or '-')} · {uname}\n"
+        f"📅 Qo'shildi: {str(u.get('joined_at'))[:16].replace('T', ' ')}\n"
+        f"🔢 So'rovlar: {u.get('requests', 0)}\n"
+        f"🌐 Til: {u.get('language') or '-'}\n"
+        f"Holat: {status}\n{vip_line}"
+    )
+    await cb.message.edit_text(text, reply_markup=user_detail_kb(u).as_markup())
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("adm:vipgrant:"))
+async def cb_vip_grant(cb: CallbackQuery):
+    _, _, uid_raw, days_raw = cb.data.split(":")
+    uid, days = int(uid_raw), int(days_raw)
+    until = await db.set_vip(uid, days, "admin_panel")
+    await cb.message.edit_reply_markup(
+        reply_markup=user_detail_kb(await db.get_user(uid)).as_markup()
+    )
+    try:
+        lang = await get_lang(uid)
+        await cb.bot.send_message(
+            uid,
+            t(
+                lang,
+                "vip_activated",
+                label=f"{days} kunlik VIP",
+                until=until[:16].replace("T", " "),
+            ),
+        )
+    except Exception:
+        log.warning("vipgrant notify failed for %s", uid)
+    await cb.answer(f"✅ +{days} kun VIP berildi", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("adm:viprevoke:"))
+async def cb_vip_revoke(cb: CallbackQuery):
+    uid = int(cb.data.rsplit(":", 1)[-1])
+    ok = await db.revoke_vip(uid)
+    with contextlib.suppress(Exception):
+        u = await db.get_user(uid)
+        if u:
+            await cb.message.edit_reply_markup(
+                reply_markup=user_detail_kb(u).as_markup()
+            )
+    await cb.answer(
+        "✅ VIP olib tashlandi" if ok else "⚠️ VIP topilmadi",
+        show_alert=True,
+    )
+
+
+@router.callback_query(F.data == "adm:vips")
+async def cb_vips(cb: CallbackQuery):
+    from utils.keyboards import vips_list_kb
+
+    vips = await db.list_active_vips(limit=20)
+    if not vips:
+        await cb.message.edit_text(
+            "💎 Faol VIP obunachi yo'q.",
+            reply_markup=admin_back_kb().as_markup(),
+        )
+        await cb.answer()
+        return
+    lines = [f"💎 <b>VIP obunachilar ({len(vips)}):</b>\n"]
+    for v in vips:
+        name = v.get("username") or v.get("full_name") or str(v["user_id"])
+        lines.append(f"• {esc(str(name)[:22])} · {v['days_left']} kun · <code>{v['user_id']}</code>")
+    lines.append("\nBoshqarish uchun bosing 👇 (kartada olib tashlash tugmasi bor)")
+    await cb.message.edit_text(
+        "\n".join(lines), reply_markup=vips_list_kb(vips).as_markup()
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:scan")
+async def cb_scan(cb: CallbackQuery):
+    from scheduler import run_scan_cycle
+
+    await cb.answer("⚡️ Skanerlash boshlandi...")
+    status = await cb.message.answer("⚡️ Qo'lda skanerlash ishga tushdi...")
+    try:
+        count = await run_scan_cycle(cb.bot)
+        await status.edit_text(f"✅ Skaner tugadi. Yuborilgan xabarlar: <b>{count}</b>")
+    except Exception:
+        log.exception("panel scan failed")
+        await status.edit_text("❌ Skanerda xatolik. Loglarni tekshiring.")
 
 
 # ---------------- eski buyruqlar ----------------

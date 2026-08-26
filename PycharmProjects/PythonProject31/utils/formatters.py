@@ -117,6 +117,7 @@ def format_signal_message(
     mtf_lines: list[str],
     patterns_text: str,
     lang: str = "uz",
+    pa_text: str = "",
 ) -> str:
     badge = direction_badge(sig.direction, lang)
     bar = progress_bar(sig.confidence, 14)
@@ -137,6 +138,9 @@ def format_signal_message(
 
     if patterns_text:
         lines += ["", t(lang, "patterns_line", patterns=patterns_text)]
+
+    if pa_text:
+        lines += ["", pa_text]
 
     if sig.resistances or sig.supports:
         res_txt = fmt_price(sig.resistances[0], sig.decimals) if sig.resistances else "-"
@@ -173,7 +177,7 @@ def format_signal_message(
 
 
 def format_neutral_summary(
-    result, mtf_lines: list[str], patterns_text: str, lang: str = "uz"
+    result, mtf_lines: list[str], patterns_text: str, lang: str = "uz", pa_text: str = ""
 ) -> str:
     dec = auto_decimals(result.last_price)
     price = fmt_price(result.last_price, dec)
@@ -195,11 +199,13 @@ def format_neutral_summary(
     lines.extend(f"  {line}" for line in mtf_lines)
     if patterns_text:
         lines += ["", t(lang, "patterns_line", patterns=patterns_text)]
+    if pa_text:
+        lines += ["", pa_text]
     lines += [
         "",
         t(lang, "signals_hint"),
         t(lang, "disclaimer"),
-        f"💰 {t(lang, 'current_price')}: <code>{price}</code>",
+        f"{t(lang, 'current_price')}: <code>{price}</code>",
     ]
     return "\n".join(lines)
 

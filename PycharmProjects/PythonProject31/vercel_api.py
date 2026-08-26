@@ -108,13 +108,20 @@ async def check(
     try:
         await db.connect()
         sent = await run_scan_cycle(bot)
+        try:
+            from signal_tracker import track_open_signals
+
+            tracked = await track_open_signals()
+        except Exception:
+            log.exception("signal tracker failed")
+            tracked = -1
     finally:
         await db.close()
         try:
             await bot.session.close()
         except Exception:
             pass
-    return {"ok": True, "sent": sent}
+    return {"ok": True, "sent": sent, "tracked": tracked}
 
 
 def dp_allowed_updates() -> list[str]:
